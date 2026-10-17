@@ -1,41 +1,37 @@
-import { useEffect, useState } from "react";
-import { getReady } from "./lib/api";
-
-type State =
-  | { kind: "loading" }
-  | { kind: "ok"; database: string }
-  | { kind: "error" };
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { AppShell } from "@/components/layout/AppShell";
+import { navItems } from "@/config/navigation";
+import { ProtectedRoute, PublicOnlyRoute } from "@/features/auth/routes";
+import { ComingSoonPage } from "@/pages/ComingSoonPage";
+import { LoginPage } from "@/pages/LoginPage";
+import { NotFoundPage } from "@/pages/NotFoundPage";
+import { OverviewPage } from "@/pages/OverviewPage";
+import { RegisterPage } from "@/pages/RegisterPage";
+import { SettingsPage } from "@/pages/SettingsPage";
 
 export default function App() {
-  const [state, setState] = useState<State>({ kind: "loading" });
-
-  useEffect(() => {
-    getReady()
-      .then((r) => setState({ kind: "ok", database: r.database }))
-      .catch(() => setState({ kind: "error" }));
-  }, []);
-
-  const color =
-    state.kind === "ok" ? "#2dd4bf" : state.kind === "error" ? "#f87171" : "#94a3b8";
-
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "grid",
-        placeItems: "center",
-        color: "#e2e8f0",
-        fontFamily: "system-ui, sans-serif",
-      }}
-    >
-      <div style={{ textAlign: "center" }}>
-        <h1 style={{ marginBottom: 8 }}>QueryWise AI</h1>
-        <p style={{ color }}>
-          {state.kind === "loading" && "Checking backend…"}
-          {state.kind === "ok" && `Backend ready · database ${state.database}`}
-          {state.kind === "error" && "Backend unavailable"}
-        </p>
-      </div>
-    </main>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<PublicOnlyRoute />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppShell />}>
+            <Route index element={<OverviewPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            {navItems
+              .filter((item) => !item.available)
+              .map((item) => (
+                <Route key={item.path} path={item.path.slice(1)} element={<ComingSoonPage item={item} />} />
+              ))}
+          </Route>
+        </Route>
+
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }

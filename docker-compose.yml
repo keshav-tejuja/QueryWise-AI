@@ -22,6 +22,29 @@ services:
         limits:
           memory: 512M
 
+  # Stands in for "the user's analytics database". Dev-only credentials, no real data.
+  sampledb:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sampleadmin
+      POSTGRES_PASSWORD: sampleadmin_dev_pw
+      POSTGRES_DB: sample
+    volumes:
+      - sampledata:/var/lib/postgresql/data
+      - ./eval/sample_db/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:${SAMPLE_DB_HOST_PORT:-5434}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sampleadmin -d sample"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
   backend:
     build:
       context: ./backend
@@ -34,6 +57,10 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       ACCESS_TOKEN_MINUTES: ${ACCESS_TOKEN_MINUTES:-15}
       REFRESH_TOKEN_DAYS: ${REFRESH_TOKEN_DAYS:-7}
+      FERNET_KEYS: ${FERNET_KEYS}
+      DB_HOST_ALLOWLIST: ${DB_HOST_ALLOWLIST:-sampledb}
+      DB_ALLOW_PRIVATE_HOSTS: ${DB_ALLOW_PRIVATE_HOSTS:-false}
+      CONNECTION_TEST_RATE_PER_MINUTE: ${CONNECTION_TEST_RATE_PER_MINUTE:-10}
       WATCHFILES_FORCE_POLLING: "true"
     volumes:
       - ./backend/app:/app/app
@@ -44,6 +71,8 @@ services:
       - "127.0.0.1:8000:8000"
     depends_on:
       db:
+        condition: service_healthy
+      sampledb:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/live')"]
@@ -77,3 +106,4 @@ services:
 
 volumes:
   pgdata:
+  sampledata:

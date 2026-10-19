@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useBackendStatus } from "@/features/system/useBackendStatus";
+import { ConnectionsSummaryCard } from "@/features/connections/ConnectionsSummaryCard";
 
 type Tone = "success" | "warning" | "destructive" | "muted";
 
@@ -76,17 +77,7 @@ export function OverviewPage() {
           </CardContent>
         </Card>
 
-        <EmptyState
-          icon={Database}
-          title="No databases connected"
-          description="Connect a PostgreSQL database to explore its schema and ask questions in plain English."
-          action={
-            <div className="flex flex-col items-center gap-2">
-              <Button disabled>Connect a database</Button>
-              <Badge variant="muted">Coming soon</Badge>
-            </div>
-          }
-        />
+        <ConnectionsSummaryCard />
       </div>
     </>
   );

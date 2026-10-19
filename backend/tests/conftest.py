@@ -1,7 +1,12 @@
 import os
+import socket
+
+from cryptography.fernet import Fernet
 
 # Must be set before the app (and its settings) are imported.
 os.environ.setdefault("SECRET_KEY", "test-secret-key-test-secret-key-0123456789")
+os.environ.setdefault("FERNET_KEYS", Fernet.generate_key().decode())
+os.environ.setdefault("DB_HOST_ALLOWLIST", "sampledb")
 
 import pytest
 from fastapi.testclient import TestClient
@@ -54,3 +59,12 @@ def client(test_engine):
     with test_engine.begin() as conn:
         for table in reversed(Base.metadata.sorted_tables):
             conn.execute(table.delete())
+
+
+@pytest.fixture(scope="session")
+def sample_db_reachable():
+    """Skip (rather than fail) when the demo database isn't reachable, e.g. outside Docker."""
+    try:
+        socket.create_connection(("sampledb", 5432), timeout=2).close()
+    except OSError:
+        pytest.skip("demo database 'sampledb' is not reachable (run tests inside docker compose)")

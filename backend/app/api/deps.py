@@ -8,6 +8,7 @@ from app.core.errors import AppError
 from app.db.session import get_db
 from app.models.user import User
 from app.repositories import users
+from app.security import rate_limit
 from app.security.tokens import InvalidTokenError, decode_access_token
 
 _bearer = HTTPBearer(auto_error=False)
@@ -33,3 +34,18 @@ def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def limit_connection_tests(user: CurrentUser) -> User:
+    """Authenticate, then rate limit endpoints that make the server connect outward."""
+    if not rate_limit.connection_test_limiter.allow(str(user.id)):
+        raise AppError(
+            "rate_limited",
+            "Too many connection tests. Wait a minute and try again.",
+            429,
+            headers={"Retry-After": "60"},
+        )
+    return user
+
+
+RateLimitedUser = Annotated[User, Depends(limit_connection_tests)]

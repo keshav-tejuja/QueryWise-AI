@@ -8,6 +8,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { OverviewPage } from "@/pages/OverviewPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { ConnectionsPage } from "@/pages/ConnectionsPage";
 
 export default function App() {
   return (
@@ -31,6 +32,8 @@ export default function App() {
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="connections" element={<ConnectionsPage />} />
       </Routes>
     </BrowserRouter>
   );

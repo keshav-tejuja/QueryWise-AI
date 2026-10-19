@@ -1,7 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Response
-
+from app.services import schema as schema_service
 from app.api.deps import CurrentUser, DbSession, RateLimitedUser
 from app.connections.tester import CheckResult, TargetParams, check_connection
 from app.models.connection import DbConnection
@@ -39,6 +39,8 @@ def list_connections(user: CurrentUser, db: DbSession):
 @router.post("", response_model=ConnectionWithCheck, status_code=201)
 def create_connection(body: ConnectionCreate, user: RateLimitedUser, db: DbSession):
     connection, check = service.create_connection(db, user, body)
+    # Best effort: the connection is saved even if discovery fails; the UI can retry it.
+    schema_service.try_initial_snapshot(db, user, connection.id)
     return _with_check(connection, check)
 
 

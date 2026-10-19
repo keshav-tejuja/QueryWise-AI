@@ -19,6 +19,7 @@ from app.core.config import settings
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from app.connections.pool_manager import pools
 
 
 @pytest.fixture(scope="session")
@@ -55,6 +56,7 @@ def client(test_engine):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+    pools.close_all()
 
     with test_engine.begin() as conn:
         for table in reversed(Base.metadata.sorted_tables):

@@ -12,7 +12,7 @@ from app.models.user import User
 from app.repositories import connections as repo
 from app.schemas.connections import ConnectionCreate, ConnectionUpdate
 from app.security.vault import get_vault
-
+from app.connections.pool_manager import pools
 _UNREADABLE = "Saved credentials can't be decrypted. Re-enter the password."
 
 
@@ -151,6 +151,7 @@ def update_connection(
     except IntegrityError:
         db.rollback()
         raise _name_taken() from None
+    pools.discard(connection.id)
     return connection, check
 
 
@@ -181,6 +182,7 @@ def disconnect_connection(db: Session, user: User, connection_id: uuid.UUID) -> 
     connection = _owned(db, user, connection_id)
     connection.status = "disconnected"
     db.commit()
+    pools.discard(connection.id)  # release the database sessions immediately
     return connection
 
 
@@ -188,3 +190,4 @@ def delete_connection(db: Session, user: User, connection_id: uuid.UUID) -> None
     connection = _owned(db, user, connection_id)
     repo.delete(db, connection)
     db.commit()
+    pools.discard(connection_id)

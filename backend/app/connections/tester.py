@@ -65,8 +65,8 @@ FROM pg_roles r WHERE r.rolname = current_user
 """
 
 
-def _connect(params: TargetParams, ip: str) -> psycopg.Connection:
-    """Open a session to the VALIDATED ip. `host` is kept only for TLS verification and auth."""
+def connect_kwargs(params: TargetParams, ip: str) -> dict:
+    """Connection settings for the VALIDATED ip. `host` is kept only for TLS verification and auth."""
     kwargs: dict = {
         "host": params.host,
         "hostaddr": ip,
@@ -82,7 +82,11 @@ def _connect(params: TargetParams, ip: str) -> psycopg.Connection:
     }
     if params.ssl_mode in ("verify-ca", "verify-full"):
         kwargs["sslrootcert"] = "system"  # trust the operating system's CA bundle
-    return psycopg.connect(**kwargs)
+    return kwargs
+
+
+def _connect(params: TargetParams, ip: str) -> psycopg.Connection:
+    return psycopg.connect(**connect_kwargs(params, ip))
 
 
 def classify_error(exc: BaseException) -> str:
@@ -96,6 +100,8 @@ def classify_error(exc: BaseException) -> str:
         return "access_denied"
     if "ssl" in message or "tls" in message or "certificate" in message:
         return "ssl_failed"
+    if "couldn't get a connection" in message:
+        return "connection_timeout"
     if "timeout expired" in message or "timed out" in message:
         return "connection_timeout"
     if "refused" in message:
